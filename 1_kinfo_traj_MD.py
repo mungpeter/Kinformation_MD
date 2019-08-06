@@ -166,32 +166,32 @@ def main():
 def UserInput():
   p = ArgumentParser(description='Command Line Arguments')
 
-  p.add_argument('-templ', dest='tmpl_file', required=False,
+  p.add_argument('-templ', dest='tmpl_file', required=True,
                  help='Template PDB structure (exact match to Topology Atom List and aligned to Ref structure 1ATP)')
-  p.add_argument('-traj', dest='traj_file', required=False,
+  p.add_argument('-traj', dest='traj_file', required=True,
                  help='Trajectory file, or an ordered list of traj filenames')
-  p.add_argument('-out', dest='outpref', required=False,
+  p.add_argument('-out', dest='outpref', required=True,
                  help='Output prefix')
+  p.add_argument('-b3k', dest='b3k', required=True,
+                 help='(beta-3 Lys) Residue Number in Template Structure')
+  p.add_argument('-dfg', dest='dfg', required=True,
+                 help='(DFG Asp) Residue Number in Template Structure')
+  p.add_argument('-glu', dest='c_glu', required=True,
+                 help='(C-helix Glu) Residue Number in Template Structure')
 
   p.add_argument('-pkl', dest='pkl', required=False,
-                 help='Use pre-pickled data in .bz2 format (def: False)')
-  p.add_argument('-b3k', dest='b3k', required=False,
-                 help='Residue Number of (beta-3 Lys)')
-  p.add_argument('-dfg', dest='dfg', required=False,
-                 help='Residue Number of (DFG Asp)')
-  p.add_argument('-glu', dest='c_glu', required=False,
-                 help='Residue Number of (C-helix Glu)')
+                 help='Use pre-pickled trajectory data generated from previous run (def: False)')
 
   p.add_argument('-superp', dest='superp', required=False,
                  help='*Optional: VMD-like selection string to perform superposition (default: False)')
 
   p.add_argument('-use_r_rf', action='store_true',
-                 help='Use R::randomForest instead of SKLearn RFClassifier (def: False)')
+                 help='Use R::randomForest instead of SKLearn RFClassifier (def: None)')
   p.add_argument('-use_sk', dest='use_sk', required=False,
-                 help='Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (Def: rf)')
+                 help='Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf)')
 
   p.add_argument('-lib', dest='lib_dir', required=False, 
-                 help='Repository/Library path')
+                 help='Kinformation_MD Repository database path (unless hard-coded)')
 
   args=p.parse_args()
   return args
@@ -210,3 +210,8 @@ if __name__ == '__main__':
 # v3.0  19.05.28  add RandomForest conformation classification and rearrange
 #                 definitions to other scripts
 #
+# e.g.> x.py -templ strada_cido.prot.1atp.pdb -traj strada_cidi.2.200ps.dcd 
+#            -b3k 39 -dfg 152 -glu 57 -out test
+#            -superp 'resid 20 to 50 and 100 to 200'
+#            -use_sk svm
+#            -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
