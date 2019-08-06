@@ -4,6 +4,7 @@ Classification of Protein Kinase Conformations in MD trajectory to yield _C-heli
 ###############################################################################################
 
 **Generate SciKit Learn Machine-Learning Models for Kinformation_MD**
+
 This script generates various classifers using one of the following methods: _RandomForest (rf)_, _Support-Vector Machine (svm)_, _Neural Network (nn)_, _K-nearest Neighbors (kn)_, _Decision Tree (dt)_, _Gaussian Process (gp)_, and _Gradient Boosting (gb)_, via Jupyter/iPython interface.
 
 All of these classifiers are able to distinguish the 5 different kinase conformations with error < 5%, with SVM gives slightly better result than others.
