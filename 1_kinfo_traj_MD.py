@@ -169,7 +169,7 @@ def UserInput():
   p.add_argument('-templ', dest='tmpl_file', required=True,
                  help='Template PDB structure (exact match to Topology Atom List and aligned to Ref structure 1ATP)')
   p.add_argument('-traj', dest='traj_file', required=True,
-                 help='Trajectory file, or an ordered list of traj filenames')
+                 help='Trajectory file, or an ordered list of traj filenames (format: dcd, nc, crd, xtc)')
   p.add_argument('-out', dest='outpref', required=True,
                  help='Output prefix')
   p.add_argument('-b3k', dest='b3k', required=True,
@@ -180,7 +180,7 @@ def UserInput():
                  help='(C-helix Glu) Residue Number in Template Structure')
 
   p.add_argument('-pkl', dest='pkl', required=False,
-                 help='Use pre-pickled trajectory data generated from previous run (def: False)')
+                 help='Use pre-pickled trajectory data generated from previous run, in pkl.bz2 format (def: False)')
 
   p.add_argument('-superp', dest='superp', required=False,
                  help='*Optional: VMD-like selection string to perform superposition (default: False)')
@@ -215,3 +215,8 @@ if __name__ == '__main__':
 #            -superp 'resid 20 to 50 and 100 to 200'
 #            -use_sk svm
 #            -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
+#
+# All trajectory frames should be superposed to a common reference in template
+# structure, i.e. the large-lobe except DFG-motif, activation-loop until 
+# AP-motif, G-helix, and any non-canonical structure. The template structure
+# must be pre-superposed to PKA's 1ATP ('resid 122-138+162-183')

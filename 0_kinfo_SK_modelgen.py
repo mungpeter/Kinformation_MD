@@ -240,7 +240,7 @@ def EvaluatePerformance( model, test, predict, Cols ):
   print(confusion_matrix(test, predict))
   print('\n# Mean Squared Error:')
   print(classification_report(test, predict))
-  print('\n# Accuracy Score - Oot-of-bag Error:')
+  print('\n# Accuracy Score - Out-of-bag Error:')
   a_score = accuracy_score(test, predict)
   print('{0:.3f} %  -  {1:.3f} %\n'.format(a_score*100, (1-a_score)*100))
   try:
