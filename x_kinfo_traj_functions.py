@@ -338,19 +338,19 @@ def CompareMetrics( trj_df, ref_df_orig ):
   c_df = pd.DataFrame(index=range(len(trj_df)), columns=Cols)
 
   # for vectorization, make ref_df and trj_df same dimension
-  ref_df = pd.DataFrame(np.repeat(ref_df_orig.values, len(trj_df), axis=0))
+  ref_df = pd.DataFrame(np.repeat(ref_df_orig.to_numpy(), len(trj_df), axis=0))
   ref_df.columns = ref_df_orig.columns
 
   # transpose the input data for vectorization, but no need to transpose back
   # when exit - already in 1-D array format
-  c_df.p1p1x  = VecDot( np.array(list(trj_df['p1'].values)).T, 
-                        np.array(list(ref_df['p1'].values)).T )
-  c_df.p2p2x  = VecDot( np.array(list(trj_df['p2'].values)).T, 
-                        np.array(list(ref_df['p2'].values)).T )
-  c_df.r3r3x  = VecDot( np.array(list(trj_df['v3'].values)).T, 
-                        np.array(list(ref_df['v3'].values)).T )
-  c_df.h_cgvc = VecDot( np.array(list(trj_df['cg_vec'].values)).T, 
-                        np.array(list(ref_df['cg_vec'].values)).T )
+  c_df.p1p1x  = VecDot( np.array(list(trj_df['p1'].to_numpy()).T, 
+                        np.array(list(ref_df['p1'].to_numpy())).T )
+  c_df.p2p2x  = VecDot( np.array(list(trj_df['p2'].to_numpy())).T, 
+                        np.array(list(ref_df['p2'].to_numpy())).T )
+  c_df.r3r3x  = VecDot( np.array(list(trj_df['v3'].to_numpy())).T, 
+                        np.array(list(ref_df['v3'].to_numpy())).T )
+  c_df.h_cgvc = VecDot( np.array(list(trj_df['cg_vec'].to_numpy())).T, 
+                        np.array(list(ref_df['cg_vec'].to_numpy())).T )
   c_df.dfg_st = DFGState( c_df.p1p1x.to_numpy(), c_df.p2p2x.to_numpy() )
 
   c_df.ang_NHs = trj_df.ang_NHs
