@@ -39,7 +39,7 @@ from x_kinfo_SK_classify import KinfoClassify
 #print(sklearn.__version__)  # stable: 0.20.3
 np.seterr(invalid='ignore')
 
-lib_dir = '/Users/xxx/Konformation_MD/z_database/'
+lib_dir = '/Users/xxx/Kinformation_MD/z_database/'
 print('##### need to change the hard-coded library/repository directory #####')
 print('current lib_dir: '+lib_dir+'\n')
 
