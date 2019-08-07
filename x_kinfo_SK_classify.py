@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys,os
-sys.path.append('/Users/pmung/Dropbox (Schlessinger lab)/9_scripts/3_program/structures/4_Konformation')
+#sys.path.append('/Users/xxx/scripts/Kinformation_MD')
 
 import re
 import bz2

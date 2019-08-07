@@ -12,7 +12,7 @@ R = ro.r
 R_dfg_model = 'R_rf_model_dfg.190527.rda'
 R_chx_model = 'R_rf_model_full.190527.rda'
 
-lib_dir = '/Users/pmung/Dropbox (Schlessinger lab)/9_scripts/3_program/structures/4_Konformation/z_database/'
+lib_dir = '/Users/xxx/scripts/Kinformation_MD/z_database/'
 
 
 ##########################################################################

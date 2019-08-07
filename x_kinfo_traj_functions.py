@@ -295,7 +295,6 @@ def CalculateHelixAxis( Coords ):
 ## Take in coordinates, calculate vectors among the coords, generate
 ## Cross-Products of the pairs
 ## Asp-CG (r1), Asp-CA (r2), Phe-CA (r3), Phe-CG (r4)
-@jit
 def CalculateDFGVectors( inp ):
   r1, r2, r3, r4 = inp
   x = len(r1)
@@ -333,7 +332,6 @@ def CalculateDFGVectors( inp ):
 
 ##########################################################################
 ## calculate structural vectors, and recycle the angular/distance metrics
-@jit
 def CompareMetrics( trj_df, ref_df_orig ):
   Cols = ['p1p1x', 'p2p2x', 'r3r3x', 'dfg_st', 'h_cgvc',
           'ang_NHs', 'ang_CHs', 'dist_NC', 'dist_NH', 'dist_CH']
@@ -396,25 +394,21 @@ def _conditions( df ):
 ##########################################################################
 ## Magnitude of a vector, equivalent to np.linalg.norm( v )
 ## this algorithm is much faster than np.linalg.norm function
-@jit
 def VecMag( v ):
   return np.sqrt((np.asarray(v)**2).sum(-1))
 
 #################
 ## Distance between 2 points for pandas vectorization
-@jit
 def Distance( a, b ):
   return VecMag( list( VecGen( a, b ) ) )
 
 #################
 # ## Generate a unit vector from 2 coordinates for pandas vectorization
-@jit
 def VecGen( a, b ):
   return ( np.array(b) - np.array(a) )
 
 #################
 ## Cross product in the most basic form for pandas vectorization
-@jit
 def VecCross( a, b ):
   c = np.array([ a[1]*b[2] - a[2]*b[1],
                  a[2]*b[0] - a[0]*b[2],
@@ -423,7 +417,6 @@ def VecCross( a, b ):
 
 #################
 ## Dot product in the most basic form for pandas vectorization
-@jit
 def VecDot( a, b ):
 #  print('a\n', a, '\n', 'b', '\n', b)
   c = a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
@@ -431,7 +424,6 @@ def VecDot( a, b ):
 
 #################
 ## Angle between vectors for pandas vectorization
-@jit
 def VectorAngle( inp ):
   r1, r2, r3, r4 = inp
   
@@ -466,7 +458,6 @@ def LsqFit_nd( X, Y, order=1 ):
 # Find the center element in an array. The result is 1 less than correct
 # answer -- Python numbering starts from 0. i.e. 9-element array is [0,...,8]
 # center is 4, not 5
-@jit
 def ArrayCent( count ):
   if count % 2 == 0:
     center = (count/2)-1
