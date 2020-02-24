@@ -30,7 +30,6 @@ from x_kinfo_traj_functions import CalculateHelixAxis
 from x_kinfo_traj_functions import CalculateDFGVectors
 from x_kinfo_traj_functions import VecMag, VecGen, Distance, VectorAngle
 
-from x_kinfo_SK_modelgen import Normal_Param
 from x_kinfo_SK_classify import KinfoClassify
 
 #print(np.__version__)       # stable: 1.16.2
@@ -48,14 +47,15 @@ sk_ml = ['rf','svm','nn','dt','kn','gb', 'gp']
 ##########################################################################
 def main():
   args = UserInput()
-  
+
   if args.use_sk not in sk_ml:   # default SK model: RandomForest
     args.use_sk = 'rf'
 
-## These are hard-coded test cases
-#  wrk_dir = '/Users/pmung/Dropbox (Schlessinger lab)/z_others/8_strad/'
-#  args.tmpl_file = wrk_dir+'2_md/strada_cido.prot.1atp.pdb'
-#  args.traj_file = wrk_dir+'2_md/strada_cidi.2.200ps.dcd'
+### These are hard-coded test cases with known key residue positions. 
+### This was used for examining the code by skipping some steps
+#  wrk_dir = '.'
+#  args.tmpl_file = wrk_dir+'examples/strada_cido.prot.1atp.pdb'
+#  args.traj_file = wrk_dir+'examples/strada_cidi.2.200ps.dcd'
 #  args.outpref   = 'test'
 #  args.b3k = 39
 #  args.dfg = 152
@@ -68,7 +68,7 @@ def main():
   ## reference structure must start at resid 1. Modified ref is hardcoded here
   if not os.path.isfile(lib_dir+'1ATP.mdtraj.pdb'):
     sys.exit('\n    ERROR: Reference structure "1ATP.mdtraj.pdb" not found\n'+
-             lib_dir+'1ATP.mdtraj.pdb')
+              lib_dir+'1ATP.mdtraj.pdb')
   else:
     ref_file = lib_dir+'1ATP.mdtraj.pdb'
     ref_pkl  = lib_dir+'1ATP.mdtraj.pkl.bz2'
@@ -110,7 +110,7 @@ def main():
       mpi.join()
     end2 = time.perf_counter()
     print('  ## Time to load trajectory: {0:.1f} ms for {1} frames\n'.format(
-             (end2-start2)*1000, len(traj)) )
+              (end2-start2)*1000, len(traj)) )
 
   ## superpose all frames to template structure pre-superposed to ref 1ATP.pdb
     if args.superp:
@@ -123,7 +123,7 @@ def main():
     start  = time.perf_counter()
     trj_cd = ExtractCoords(dfg=args.dfg, b3k=args.b3k, c_glu=args.c_glu, pkl=args.pkl)
     trj_df = CalculateMetrics( trj_cd(traj) )
-         
+
   ## skip calculation if data is already stored in pickle
   else:
     print('  ## INFO: Read structural residue coords from: {0}\n'.format(args.pkl))
@@ -167,31 +167,31 @@ def UserInput():
   p = ArgumentParser(description='Command Line Arguments')
 
   p.add_argument('-templ', dest='tmpl_file', required=True,
-                 help='Template PDB structure (exact match to Topology Atom List and aligned to Ref structure 1ATP)')
+                  help='Template PDB structure (exact match to Topology Atom List and aligned to Ref structure 1ATP)')
   p.add_argument('-traj', dest='traj_file', required=True,
-                 help='Trajectory file, or an ordered list of traj filenames (format: dcd, nc, crd, xtc)')
+                  help='Trajectory file, or an ordered list of traj filenames (format: dcd, nc, crd, xtc)')
   p.add_argument('-out', dest='outpref', required=True,
-                 help='Output prefix')
+                  help='Output prefix')
   p.add_argument('-b3k', dest='b3k', required=True,
-                 help='(beta-3 Lys) Residue Number in Template Structure')
+                  help='(beta-3 Lys) Residue Number in Template Structure')
   p.add_argument('-dfg', dest='dfg', required=True,
-                 help='(DFG Asp) Residue Number in Template Structure')
+                  help='(DFG Asp) Residue Number in Template Structure')
   p.add_argument('-glu', dest='c_glu', required=True,
-                 help='(C-helix Glu) Residue Number in Template Structure')
+                  help='(C-helix Glu) Residue Number in Template Structure')
 
   p.add_argument('-pkl', dest='pkl', required=False,
-                 help='Use pre-pickled trajectory data generated from previous run, in pkl.bz2 format (def: False)')
+                  help='Use pre-pickled trajectory data generated from previous run, in pkl.bz2 format (def: False)')
 
   p.add_argument('-superp', dest='superp', required=False,
-                 help='*Optional: VMD-like selection string to perform superposition (default: False)')
+                  help='*Optional: VMD-like selection string to perform superposition (default: False)')
 
   p.add_argument('-use_r_rf', action='store_true',
-                 help='Use R::randomForest instead of SKLearn RFClassifier (def: None)')
+                  help='Use R::randomForest instead of SKLearn RFClassifier (def: None)')
   p.add_argument('-use_sk', dest='use_sk', required=False,
-                 help='Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf)')
+                  help='Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf)')
 
   p.add_argument('-lib', dest='lib_dir', required=False, 
-                 help='Kinformation_MD Repository database path (unless hard-coded)')
+                  help='Kinformation_MD Repository database path (unless hard-coded)')
 
   args=p.parse_args()
   return args

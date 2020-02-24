@@ -15,6 +15,11 @@ from pathos import multiprocessing
 chunk = 25
 
 ##########################################################################
+#
+# this script contains functions to handle kinase structures and conformations
+# that are used by other scripts.
+#
+#
 ##########################################################################
 ## Calculate the structural metrics using the list of coordinates
 ## Instead of using MPI looping over the coordinates, here use Dataframe + Numpy
@@ -27,8 +32,8 @@ chunk = 25
 def CalculateMetrics( Crd ):
   frames = len(list(Crd.coord_b3k.ca))
   ## predefine coord dataframe index/column (frame/atom) to maximize efficiency
-  Cols = [ 'p1', 'p2', 'v3', 'cg_vec', 'ang_NHs', 'ang_CHs',
-           'dist_NC', 'dist_NH', 'dist_CH', 'temp' ]
+  Cols = ['p1', 'p2', 'v3', 'cg_vec', 'ang_NHs', 'ang_CHs',
+          'dist_NC', 'dist_NH', 'dist_CH', 'temp']
   m_df = pd.DataFrame(index=range(frames), columns=Cols)
 
   # to successfully put object of 'list of np.arrays' into rows of Dataframe cell,
@@ -42,7 +47,7 @@ def CalculateMetrics( Crd ):
     'c_glu_ca': list(Crd.coord_c_glu.ca), 'c_glu_cb': list(Crd.coord_c_glu.cb), 
     'c_glu_cg': list(Crd.coord_c_glu.cg), 'hlx_cent': list(Crd.coord_hlx.cn),
     }, index=range(frames) )
- 
+
 ####################
   ## Using Dataframe vectorization is ~ 250x faster than MPIx4, ~ 1000x looping
   print('# Calculate C-Glu vector (cg_vec)...')
@@ -56,22 +61,22 @@ def CalculateMetrics( Crd ):
   start = time.perf_counter()
   print('# Calculate DFG vectors (p1, p2, v3)...')
   Tmp = CalculateDFGVectors( 
-                [d_df.dfg_d_cg.to_numpy(), d_df.dfg_d_ca.to_numpy(), 
-                 d_df.dfg_f_ca.to_numpy(), d_df.dfg_f_cg.to_numpy()] )
+                [ d_df.dfg_d_cg.to_numpy(), d_df.dfg_d_ca.to_numpy(), 
+                  d_df.dfg_f_ca.to_numpy(), d_df.dfg_f_cg.to_numpy() ] )
   m_df.p1 = Tmp.p1
   m_df.p2 = Tmp.p2
   m_df.v3 = Tmp.v3
 
 #####################
   print('# Calculate N-domain/C-helix angle (ang_NHs)...')
-  m_df.ang_NHs = VectorAngle([ d_df.hlx_cent.to_numpy(), d_df.b3k_ca.to_numpy(),
-                               d_df.hlx_cent.to_numpy(), d_df.c_glu_cg.to_numpy() ])
+  m_df.ang_NHs = VectorAngle( [ d_df.hlx_cent.to_numpy(), d_df.b3k_ca.to_numpy(),
+                                d_df.hlx_cent.to_numpy(), d_df.c_glu_cg.to_numpy() ])
 
 #####################
   print('# Calculate C-domain/C-helix angle (ang_CHs)...')
-  m_df.ang_CHs = VectorAngle([ d_df.hlx_cent.to_numpy(), d_df.dfg_d_ca.to_numpy(),
-                               d_df.hlx_cent.to_numpy(), d_df.c_glu_cg.to_numpy() ])
-  
+  m_df.ang_CHs = VectorAngle( [ d_df.hlx_cent.to_numpy(), d_df.dfg_d_ca.to_numpy(),
+                                d_df.hlx_cent.to_numpy(), d_df.c_glu_cg.to_numpy() ])
+
 ####################
   print('# Calculate N-/C-domain distance (dist_NC)...')
   m_df.dist_NC = Distance( d_df.b3k_ca.to_numpy(), d_df.dfg_d_ca.to_numpy() )
@@ -138,12 +143,13 @@ def SelectAtom( traj, resid, around=0, pkl=False ):
 
 #################
     ## 2nd-order regression of C-helix, take mid-point as helix center coords
+
     ## ** Using chunks of 'apply' + MPI, it is no different than MPI alone
     ##    but faster than 'loops' and 'apply' alone
-    ## Use map will improve performance over imap by ~8-10% due to mpi overhead
+    ## Use map will improve performance over imap by ~8-10% due to mpi overhead?
     ## but with manual setting a fixed value of chunk size, imap perform ~ map
     print('# Calculate 2nd-order regression on C-helix for axis mid-point...')
-    mpi       = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    mpi       = multiprocessing.Pool()
     Reg2_list = [x for x in tqdm(mpi.imap(CalculateHelixAxis,Frames,chunk),total=frames)]
 
 #    def CalculateHelixAxis_InParallel( chunk ):
@@ -151,15 +157,17 @@ def SelectAtom( traj, resid, around=0, pkl=False ):
 #      Reg2_list = chunk_df.apply(lambda row: CalculateHelixAxis(row['frame']), axis=1 )
 #      return Reg2_list
 
+#    ## Test case using 'apply+MPI' - multi CPU
 #    start = time.perf_counter()
+#    # determine chunk-size by number of CPU
 #    f_chunks = np.array_split(Frames, multiprocessing.cpu_count())
 #    print('# Calculate 2nd-order regression on C-helix for axis mid-point...')
-#    mpi        = multiprocessing.Pool(processes=multiprocessing.cpu_count())
 #    Chunk_list = [x for x in tqdm(mpi.imap(CalculateHelixAxis_InParallel, f_chunks),total=len(f_chunks))]
 #    Reg2_list = [item for sublist in Chunk_list for item in sublist]
 #    end = time.perf_counter()
 #    print(' {0:.1f} ms for {1} frames with MPI+Apply\n'.format((end-start)*1000, frames))
 
+#    ## Test case using 'apply' only - single CPU
 #    start = time.perf_counter()
 #    df['reg2_a'] = df.apply(lambda row: CalculateHelixAxis(row['frame']), axis=1 )
 #    Reg2_list = df['reg2_a'].to_list()
@@ -322,9 +330,9 @@ def CalculateDFGVectors( inp ):
   t_df.temp1 = pd.DataFrame(t1)
   t_df.temp2 = pd.DataFrame(t2)
 
-  y = {'p1': t_df.temp1.div( VecMag(list(t_df.temp1)) ),  # univector for p1
-       'p2': t_df.temp2.div( VecMag(list(t_df.temp2)) ),
-       'v3': ur23 }                               # already univector for v3
+  y = { 'p1': t_df.temp1.div( VecMag(list(t_df.temp1)) ),  # univector for p1
+        'p2': t_df.temp2.div( VecMag(list(t_df.temp2)) ),
+        'v3': ur23 }                               # already univector for v3
   u_df = pd.DataFrame(y)
 
   return u_df
@@ -410,9 +418,9 @@ def VecGen( a, b ):
 #################
 ## Cross product in the most basic form for pandas vectorization
 def VecCross( a, b ):
-  c = np.array([ a[1]*b[2] - a[2]*b[1],
-                 a[2]*b[0] - a[0]*b[2],
-                 a[0]*b[1] - a[1]*b[0]  ] )
+  c = np.array( [ a[1]*b[2] - a[2]*b[1],
+                  a[2]*b[0] - a[0]*b[2],
+                  a[0]*b[1] - a[1]*b[0]  ] )
   return c
 
 #################
@@ -463,5 +471,90 @@ def ArrayCent( count ):
   else:
     center = (count-1)/2
   return int(center)
+
+##########################################################################
+
+########################################################################
+## Normalize ang_ and dist_ data with vectorization, same result as R's
+## clusterSim data.Normalization(input, type='n5', normalization='column')
+def Normalization( data, norm_param='' ):
+
+  if not norm_param:
+    cb_vars = data.to_numpy() - data.to_numpy().mean(axis=0)
+    cb_max  = np.max(np.abs(cb_vars), axis=0) 
+  else:
+    cb_vars = data.to_numpy() - norm_param.mean
+    cb_max  = norm_param.max
+
+## A one-time generation of mean/max value from input data for future use
+#  class Normal_Param(object):
+#    def __init__(self, mean='', max=''):
+#      self.mean = mean
+#      self.max  = max
+
+#  norm_parm = Normal_Param(mean=cb_mean, max=cb_max)
+#  with open('kinfo_data_normalize_param.pkl', 'wb') as fi:
+#    pickle.dump(norm_parm, fi, protocol=pickle.HIGHEST_PROTOCOL)
+
+  return cb_vars/cb_max  # (var-mean)/max(abs(var-mean))
+
+
+########################################################################
+## set DFG conformation type based on DFG in/out with vectorized T/F
+## Pandas based and use half with numpy vectorization to give ~ 10x speedup
+## old half-vectorized ~ 1.2s for 3800 items, full-vectorized ~5ms, ~240x speedup
+def dfg_state( conf ):
+  conf_di = (conf == 'cidi') | (conf == 'codi')
+  conf_do = (conf == 'cido') | (conf == 'codo')
+  state = pd.DataFrame({ '0': [2]*len(conf) }) # 'interm' has '2'
+  state[conf_di == True] = 0  # any DI is '0'
+  state[conf_do == True] = 1  # any DO is '1'
+  return state['0'].to_numpy()
+
+# current and older way to define DFG state. Older way is much slower
+def state_dfg( state ):
+  conf_di = (state == 0)
+  conf_do = (state == 1)
+  conf = pd.DataFrame({ '0': ['other']*len(state) })
+  conf[conf_di[0].to_numpy() == True] = 'di' # any DI is '0'
+  conf[conf_do[0].to_numpy() == True] = 'do' # any DO is '1'
+  return conf['0'].to_numpy()
+
+def state_dfg_old( state ):
+  conf_di = (state == 0)
+  conf_do = (state == 1)
+  conf = ['other']*(len(state))   # other has '2'
+  for i in range(len(state)):
+    if conf_di.iloc[i][0]: conf[i] = 'di'  # any DI has '0'
+    if conf_do.iloc[i][0]: conf[i] = 'do'  # any DO has '1'
+  return conf
+
+#################
+
+def kinfo_state( conf ):
+  conf_cidi = (conf == 'cidi')
+  conf_cido = (conf == 'cido')
+  conf_codi = (conf == 'codi')
+  conf_codo = (conf == 'codo')
+  state = pd.DataFrame({ '0': [4]*len(conf) }) # 'wcd' has '4'
+  state[conf_cidi == True] = 0  # any DI is '0'
+  state[conf_cido == True] = 1  # any DO is '1'
+  state[conf_codi == True] = 2  # any DI is '0'
+  state[conf_codo == True] = 3  # any DO is '1'
+  return state['0'].to_numpy()
+
+################
+def state_kinfo( state ):
+  conf_cidi = (state == 0)
+  conf_cido = (state == 1)
+  conf_codi = (state == 2)
+  conf_codo = (state == 3)
+  conf = pd.DataFrame({ '0': ['wcd']*len(state) })
+  conf[conf_cidi[0].to_numpy() == True] = 'cidi'  # ci DI is '0'
+  conf[conf_cido[0].to_numpy() == True] = 'cido'  # ci DO is '1'
+  conf[conf_codi[0].to_numpy() == True] = 'codi'  # co DI is '2'
+  conf[conf_codo[0].to_numpy() == True] = 'codo'  # co DO is '3'
+  return conf['0'].to_numpy()
+
 
 ##########################################################################

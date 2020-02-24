@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
-## this code use Jupyter/iPython to generate SKLearn ML Model sequentially
+## this code use Jupyter/iPython to generate the initial
+## SKLearn ML Model sequentially, which is then used by 
+## 1_kinfo_traj_MD.py and other scripts. This model generation
+## step is a one-time thing unless more the training set of the
+## kinase conformations is changed 
 
 import sys,os
 import bz2
 import time
-import numba
 import pickle
 import numpy as np
 import pandas as pd
@@ -28,22 +31,26 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
 
 from x_kinfo_R_classify import R_Impute
+from x_kinfo_traj_functions import Normalization
+from x_kinfo_traj_functions import state_dfg,dfg_state
+from x_kinfo_traj_functions import state_kinfo,kinfo_state
+
 
 def SK_GenerateMLModels():
-  Ref_Matrx_cols= ['Group','training','p1p1x','p2p2x','r3r3x','h_cgvc',
-                   'ang_NHs','ang_CHs','dist_NH','dist_CH']
+  Ref_Matrx_cols= [ 'Group','training','p1p1x','p2p2x','r3r3x','h_cgvc',
+                    'ang_NHs','ang_CHs','dist_NH','dist_CH']
 
-  Ref_Train_Cols= ['Group','training',
-                   'p1p1x','p2p2x','r3r3x','h_cgvc','ang_NHs','ang_CHs',
-                   'dist_NH','dist_CH',]
+  Ref_Train_Cols= [ 'Group','training',
+                    'p1p1x','p2p2x','r3r3x','h_cgvc','ang_NHs','ang_CHs',
+                    'dist_NH','dist_CH',]
 
-  Ref_Test_Cols = ['p1p1x','p2p2x','r3r3x','h_cgvc','ang_NHs','ang_CHs',
-                   'dist_NH','dist_CH']
+  Ref_Test_Cols = [ 'p1p1x','p2p2x','r3r3x','h_cgvc','ang_NHs','ang_CHs',
+                    'dist_NH','dist_CH']
 
-  Ref_Final_Cols= ['Class','training',
-                   'cidi_prob','cido_prob','codi_prob','codo_prob','wcd_prob',
-                   'dfg_conf','dfg_prob','p1p1x','p2p2x','r3r3x','h_cgvc',
-                   'ang_NHs','ang_CHs','dist_NH','dist_CH']
+  Ref_Final_Cols= [ 'Class','training',
+                    'cidi_prob','cido_prob','codi_prob','codo_prob','wcd_prob',
+                    'dfg_conf','dfg_prob','p1p1x','p2p2x','r3r3x','h_cgvc',
+                    'ang_NHs','ang_CHs','dist_NH','dist_CH']
 
   norm_cols = ['ang_NHs','ang_CHs','dist_NH','dist_CH']
 
@@ -58,7 +65,7 @@ def SK_GenerateMLModels():
     'nn': 'SK_nn_model_dfg.pkl.bz2', 'kn':  'SK_kn_model_dfg.pkl.bz2', 
     'gb': 'SK_gb_model_dfg.pkl.bz2', 'gp':  'SK_gp_model_dfg.pkl.bz2', 
     'dt': 'SK_dt_model_dfg.pkl.bz2'  }
-  
+
   sk_chx_model = {
     'rf': 'SK_rf_model_full.pkl.bz2', 'svm': 'SK_svm_lin_model_full.pkl.bz2', 
     'nn': 'SK_nn_model_full.pkl.bz2', 'kn':  'SK_kn_model_full.pkl.bz2', 
@@ -94,7 +101,7 @@ def SK_GenerateMLModels():
 
   with open(lib_dir+kinfo_norm_param, 'rb') as fi:
     norm_param = pickle.load(fi)
-  
+
   norm_data = Normalization(complete[norm_cols], norm_param=norm_param)
   complete[norm_cols] = norm_data
 
@@ -165,7 +172,7 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   chx_test_attri  = df_test[full_train_cols]
   chx_test_label  = kinfo_state(df_test.Group.to_numpy())
 
- #### train DFG/Chelix model on data including 'dfg_conf' to match 'Group' 5 states
+  #### train DFG/Chelix model on data including 'dfg_conf' to match 'Group' 5 states
   rfc.fit(chx_train_attri, chx_train_label)
   chx_test_pred = rfc.predict(chx_test_attri)
   EvaluatePerformance(rfc, chx_test_label, chx_test_pred, full_train_cols)
@@ -204,7 +211,7 @@ def PrepareTrainingSet( r_impute, matrx_df, Ref_Train_Cols ):
       df = df.replace(np.nan, 'NaN').drop(['training'], axis=1)
       clean_df = pd.concat( [ SK_Impute(df[df.Group == conf], conf, 'Group', 1) 
                               for conf in set(df.Group) ] )
-    
+
   ## Rearrange columns to have consistent order
   train_df = clean_df[Ref_Train_Cols]
 
@@ -317,87 +324,3 @@ def PrepareTestSet( args, Ref_Test_Cols ):
   
 
 ########################################################################
-class Normal_Param(object):
-  def __init__(self, mean='', max=''):
-    self.mean = mean
-    self.max  = max
-
-########################################################################
-## Normalize ang_ and dist_ data with vectorization, same result as R's
-## clusterSim data.Normalization(input, type='n5', normalization='column')
-def Normalization( data, norm_param='' ):
- 
-  if not norm_param:
-    cb_vars = data.to_numpy() - data.to_numpy().mean(axis=0)
-    cb_max  = np.max(np.abs(cb_vars), axis=0) 
-  else:
-    cb_vars = data.to_numpy() - norm_param.mean
-    cb_max  = norm_param.max
-
-## A one-time generation of mean/max value from input data for future use
-#  norm_parm = Normal_Param(mean=cb_mean, max=cb_max)
-#  with open('kinfo_data_normalize_param.pkl', 'wb') as fi:
-#    pickle.dump(norm_parm, fi, protocol=pickle.HIGHEST_PROTOCOL)
-
-  return cb_vars/cb_max  # (var-mean)/max(abs(var-mean))
-
-
-########################################################################
-## set DFG conformation type based on DFG in/out with vectorized T/F
-## Pandas based and use half with numpy vectorization to give ~ 10x speedup
-## old half-vectorized ~ 1.2s for 3800 items, full-vectorized ~5ms, ~240x speedup
-def dfg_state( conf ):
-  conf_di = (conf == 'cidi') | (conf == 'codi')
-  conf_do = (conf == 'cido') | (conf == 'codo')
-  state = pd.DataFrame({ '0': [2]*len(conf) }) # 'interm' has '2'
-  state[conf_di == True] = 0  # any DI is '0'
-  state[conf_do == True] = 1  # any DO is '1'
-  return state['0'].to_numpy()
-
-
-def state_dfg( state ):
-  conf_di = (state == 0)
-  conf_do = (state == 1)
-  conf = pd.DataFrame({ '0': ['other']*len(state) })
-  conf[conf_di[0].to_numpy() == True] = 'di' # any DI is '0'
-  conf[conf_do[0].to_numpy() == True] = 'do' # any DO is '1'
-  return conf['0'].to_numpy()
-
-def state_dfg_old( state ):
-  conf_di = (state == 0)
-  conf_do = (state == 1)
-  conf = ['other']*(len(state))   # other has '2'
-  for i in range(len(state)):
-    if conf_di.iloc[i][0]: conf[i] = 'di'  # any DI has '0'
-    if conf_do.iloc[i][0]: conf[i] = 'do'  # any DO has '1'
-  return conf
-
-#################
-
-def kinfo_state( conf ):
-  conf_cidi = (conf == 'cidi')
-  conf_cido = (conf == 'cido')
-  conf_codi = (conf == 'codi')
-  conf_codo = (conf == 'codo')
-  state = pd.DataFrame({ '0': [4]*len(conf) }) # 'wcd' has '4'
-  state[conf_cidi == True] = 0  # any DI is '0'
-  state[conf_cido == True] = 1  # any DO is '1'
-  state[conf_codi == True] = 2  # any DI is '0'
-  state[conf_codo == True] = 3  # any DO is '1'
-  return state['0'].to_numpy()
-
-################
-def state_kinfo( state ):
-  conf_cidi = (state == 0)
-  conf_cido = (state == 1)
-  conf_codi = (state == 2)
-  conf_codo = (state == 3)
-  conf = pd.DataFrame({ '0': ['wcd']*len(state) })
-  conf[conf_cidi[0].to_numpy() == True] = 'cidi'  # ci DI is '0'
-  conf[conf_cido[0].to_numpy() == True] = 'cido'  # ci DO is '1'
-  conf[conf_codi[0].to_numpy() == True] = 'codi'  # co DI is '2'
-  conf[conf_codo[0].to_numpy() == True] = 'codo'  # co DO is '3'
-  return conf['0'].to_numpy()
-
-
-##########################################################################

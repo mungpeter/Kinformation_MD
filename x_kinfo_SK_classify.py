@@ -12,19 +12,18 @@ import pandas as pd
 
 from collections import Counter
 
-from x_kinfo_SK_modelgen import Normal_Param
-from x_kinfo_SK_modelgen import Normalization
-from x_kinfo_SK_modelgen import state_dfg, state_kinfo
-
 from x_kinfo_R_classify import R_RunRandomForest
 
-Ref_Test_Cols = ['p1p1x','p2p2x','r3r3x','h_cgvc','ang_NHs','ang_CHs',
-                 'dist_NH','dist_CH']
+from x_kinfo_traj_functions import Normalization
+from x_kinfo_traj_functions import state_dfg, state_kinfo
 
-Ref_Final_Cols= ['Class',
-                 'cidi_prob','cido_prob','codi_prob','codo_prob','wcd_prob',
-                 'dfg_conf','dfg_prob','p1p1x','p2p2x','r3r3x','h_cgvc',
-                 'ang_NHs','ang_CHs','dist_NH','dist_CH']
+Ref_Test_Cols = [ 'p1p1x','p2p2x','r3r3x','h_cgvc','ang_NHs','ang_CHs',
+                  'dist_NH','dist_CH']
+
+Ref_Final_Cols= [ 'Class',
+                  'cidi_prob','cido_prob','codi_prob','codo_prob','wcd_prob',
+                  'dfg_conf','dfg_prob','p1p1x','p2p2x','r3r3x','h_cgvc',
+                  'ang_NHs','ang_CHs','dist_NH','dist_CH']
 
 norm_cols = ['ang_NHs','ang_CHs','dist_NH','dist_CH']
 
@@ -87,7 +86,7 @@ def KinfoClassify( traj_df, lib_dir, outpref, use_r_rf, use_sk='rf' ):
     print(Counter(result_df.Class))
     result_df.to_csv(outpref+'.SK_{}_kinfo_classify.csv'.format(use_sk), sep=',')
     return None
-  
+
 
 
 ##########################################################################
