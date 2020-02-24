@@ -343,7 +343,7 @@ def CompareMetrics( trj_df, ref_df_orig ):
 
   # transpose the input data for vectorization, but no need to transpose back
   # when exit - already in 1-D array format
-  c_df.p1p1x  = VecDot( np.array(list(trj_df['p1'].to_numpy()).T, 
+  c_df.p1p1x  = VecDot( np.array(list(trj_df['p1'].to_numpy())).T, 
                         np.array(list(ref_df['p1'].to_numpy())).T )
   c_df.p2p2x  = VecDot( np.array(list(trj_df['p2'].to_numpy())).T, 
                         np.array(list(ref_df['p2'].to_numpy())).T )
@@ -419,8 +419,7 @@ def VecCross( a, b ):
 ## Dot product in the most basic form for pandas vectorization
 def VecDot( a, b ):
 #  print('a\n', a, '\n', 'b', '\n', b)
-  c = a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
-  return c
+  return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
 #################
 ## Angle between vectors for pandas vectorization
