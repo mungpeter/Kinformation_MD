@@ -9,11 +9,12 @@ from rpy2.robjects import r, pandas2ri
 pandas2ri.activate()
 R = ro.r
 
-R_dfg_model = 'R_rf_model_dfg.190527.rda'
-R_chx_model = 'R_rf_model_full.190527.rda'
+from x_kinfo_variables import KinfoVariables
 
-lib_dir = '/Users/xxx/scripts/Kinformation_MD/z_database/'
-
+Vars = KinfoVariables()
+lib_dir     = Vars['lib_dir']
+R_dfg_model = Vars['R_dfg_model']
+R_chx_model = Vars['R_chx_model']
 
 ##########################################################################
 ## Run the R-implementation of Random Forest classification.
@@ -24,9 +25,9 @@ def R_RunRandomForest( traj_df, lib_dir, models='' ):
     dfg_exist = os.path.isfile(lib_dir+R_dfg_model)
     chx_exist = os.path.isfile(lib_dir+R_chx_model)
     if not dfg_exist:
-      sys.exit('  ERROR: R randomForest model not found: '+R_dfg_model)
+      sys.exit('\033[31m  ERROR: R randomForest model not found:\033[0m '+R_dfg_model)
     if not chx_exist:
-      sys.exit('  ERROR: R randomForest model not found: '+R_chx_model)
+      sys.exit('\033[31m  ERROR: R randomForest model not found:\033[0m '+R_chx_model)
 
     Rfunc = R( """
 function( dfg_mod, chx_mod ) {

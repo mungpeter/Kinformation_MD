@@ -35,8 +35,14 @@ from x_kinfo_traj_functions import Normalization
 from x_kinfo_traj_functions import state_dfg,dfg_state
 from x_kinfo_traj_functions import state_kinfo,kinfo_state
 
+from x_kinfo_variables import KinfoVariables
+from x_kinfo_variables import SKLearnDFGModelFiles
+from x_kinfo_variables import SKLearnKinfoModelFiles
 
+#############################################################################
 def SK_GenerateMLModels():
+
+  ## Parameters used for ML model generation
   Ref_Matrx_cols= [ 'Group','training','p1p1x','p2p2x','r3r3x','h_cgvc',
                     'ang_NHs','ang_CHs','dist_NH','dist_CH']
 
@@ -57,38 +63,34 @@ def SK_GenerateMLModels():
   dfg_train_cols = ['p1p1x','p2p2x','r3r3x','dist_NH','dist_CH']
   full_train_cols= ['h_cgvc','ang_NHs','ang_CHs','dist_NH','dist_CH','dfg_conf']
 
-  lib_dir = '/Users/xxx/scripts/Kinformation_MD/z_database/'
-  wrk_dir = '~/work_directory/'
+############
+  sk_dfg_models = SKLearnDFGModelFiles()
+  sk_chx_models = SKLearnKinfoModelFiles()
 
-  sk_dfg_model = {
-    'rf': 'SK_rf_model_dfg.pkl.bz2', 'svm': 'SK_svm_rbf_model_dfg.pkl.bz2', 
-    'nn': 'SK_nn_model_dfg.pkl.bz2', 'kn':  'SK_kn_model_dfg.pkl.bz2', 
-    'gb': 'SK_gb_model_dfg.pkl.bz2', 'gp':  'SK_gp_model_dfg.pkl.bz2', 
-    'dt': 'SK_dt_model_dfg.pkl.bz2'  }
-
-  sk_chx_model = {
-    'rf': 'SK_rf_model_full.pkl.bz2', 'svm': 'SK_svm_lin_model_full.pkl.bz2', 
-    'nn': 'SK_nn_model_full.pkl.bz2', 'kn':  'SK_kn_model_full.pkl.bz2', 
-    'gb': 'SK_gb_model_full.pkl.bz2', 'gp':  'SK_gp_model_full.pkl.bz2', 
-    'dt': 'SK_dt_model_full.pkl.bz2'  }
-
-  kinfo_data         = 'stdy_kinase.param.171009.csv'
-  kinfo_rf_data      = 'kinfo_rf_data_pre_normal.190527.csv.gz'
-  kinfo_rf_data_norm = 'kinfo_rf_data_normalized.190527.csv.gz'
-  kinfo_norm_param   = 'kinfo_data_normalize_param.pkl'
+  Vars = KinfoVariables()
+  lib_dir            = Vars['lib_dir']
+  home_dir           = Vars['home_dir']
+  kinfo_data         = Vars['kinfo_data']
+  kinfo_rf_data      = Vars['kinfo_rf_data']
+  kinfo_rf_data_norm = Vars['kinfo_rf_data_norm']
+  kinfo_norm_param   = Vars['kinfo_norm_param']
 
 
 ##########################################################################
+  os.chdir(home_dir)
+  print('\033[34m# Directory:\033[0m]\n {0}'.format(os.getcwd()))
+
 ############## Run this to generate SKL RandomForest Models ##############
-  os.chdir('/Users/xxx')
-  p_rf_models = []
-  data_df  = pd.read_csv(lib_dir+kinfo_data, sep=',', index_col=0)
+
+  ## Read in the starting kinformation kinase-structural data file
+  ## Usually there is a duplication of '1ATP_E' and '1atp' as internal check
+  data_df  = pd.read_csv('{0}/{1}'.format(lib_dir,kinfo_data), sep=',', index_col=0)
   matrx_df = data_df[Ref_Matrx_cols].drop(['1atp_E'], axis=0) # internal check
   data_df[:5]
   matrx_df[:5]
 
 ##################################
-  ## Training set, 325 lines
+  ## Training set, usually the top 325 lines of strutures with manually annotated conformations
   train_x  = PrepareTrainingSet( True, matrx_df, Ref_Train_Cols ); train_x[:5]
   test_x   = matrx_df[pd.isna(matrx_df.Group) & pd.isna(matrx_df.training)]
   test_x   = test_x.dropna(subset=Ref_Test_Cols)    # 3286 lines
@@ -97,9 +99,9 @@ def SK_GenerateMLModels():
 
   ## Save pre-normalized data for kinformation RF generation as backup
   complete.to_csv(kinfo_rf_data, compression='gzip', sep=',')
-  complete = pd.read_csv(lib_dir+kinfo_rf_data, sep=','); complete[:5]
+  complete = pd.read_csv('{0}/{1}'.format(lib_dir,kinfo_rf_data), sep=','); complete[:5]
 
-  with open(lib_dir+kinfo_norm_param, 'rb') as fi:
+  with open('{0}/{1}'.format(lib_dir, kinfo_norm_param), 'rb') as fi:
     norm_param = pickle.load(fi)
 
   norm_data = Normalization(complete[norm_cols], norm_param=norm_param)
@@ -107,7 +109,7 @@ def SK_GenerateMLModels():
 
   ## Save/load normalized data for kinformation RF generation
   complete.to_csv(kinfo_rf_data_norm, compression='gzip', sep=',')
-  complete = pd.read_csv(lib_dir+kinfo_rf_data_norm, sep=','); complete[:5]
+  complete = pd.read_csv('{0}/{1}'.format(lib_dir,kinfo_rf_data_norm), sep=','); complete[:5]
 
   train_df = complete[ :len(train_x)]
   test_df  = complete[len(train_x): ]
@@ -177,11 +179,11 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   chx_test_pred = rfc.predict(chx_test_attri)
   EvaluatePerformance(rfc, chx_test_label, chx_test_pred, full_train_cols)
 
-  ## save the models
+  ## save the models into pickle
   if save_model:
-    with bz2.open(sk_dfg_model[ml_alg], 'wb') as fd:
+    with bz2.open(sk_dfg_models[ml_alg], 'wb') as fd:
       pickle.dump(rfc_dfg, fd, protocol=pickle.HIGHEST_PROTOCOL)
-    with bz2.open(sk_chx_model[ml_alg], 'wb') as fc:
+    with bz2.open(sk_chx_models[ml_alg], 'wb') as fc:
       pickle.dump(rfc,     fc, protocol=pickle.HIGHEST_PROTOCOL)
   return [rfc_dfg, rfc]
 
@@ -190,12 +192,12 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
 
 ## get the training set with manual annotation
 def PrepareTrainingSet( r_impute, matrx_df, Ref_Train_Cols ):
-  print('## Cleaning up Training Set...')
+  print('\033[34m## Cleaning up Training Set...\033[0m')
   ## parse out training set and assign factorized 'dfg_conf' based on 'Group'
   df = matrx_df[ pd.notna(matrx_df.Group) & pd.notna(matrx_df.training) ]
 
   ## impute data by their subset ('Group')
-  print('## Imputing Training Set...')
+  print('\033[34m## Imputing Training Set...\033[0m')
   ## skip if no NA is found in dataset
   if not df.isnull().values.any():
     print(' INFO: no missing data for imputing.')
@@ -215,9 +217,9 @@ def PrepareTrainingSet( r_impute, matrx_df, Ref_Train_Cols ):
   ## Rearrange columns to have consistent order
   train_df = clean_df[Ref_Train_Cols]
 
-  print('## Completed Training Set Imputing. Check for remaining NULL...')
+  print('\033[34m## Completed Training Set Imputing. Check for remaining NULL...\033[0m')
   if sum(train_df.isnull().sum()):
-    print('  ERROR: Cannot complete Training Set Imputation, there are NULL: ')
+    print('  \033[31mFATAL: Cannot complete Training Set Imputation, there are NULL: \033[0m')
     sys.exit(train_df.isnull().sum())
   else:
     print(' -- No NULL data --')
@@ -242,7 +244,7 @@ def SK_Impute( df, conf, coln, coli ):
 ## Perform matrics calculation to evaluate model performance
 def EvaluatePerformance( model, test, predict, Cols ):
 
-  print('### Evaluate SKlearn ML Model Performance ##')
+  print('\033[34m### Evaluate SKlearn ML Model Performance ###\033[0m')
   print(' # Confusion Matrix:')
   print(confusion_matrix(test, predict))
   print('\n# Mean Squared Error:')
@@ -252,7 +254,7 @@ def EvaluatePerformance( model, test, predict, Cols ):
   print('{0:.3f} %  -  {1:.3f} %\n'.format(a_score*100, (1-a_score)*100))
   try:
     features = model.feature_importances_
-    print('# Feature importance for RandomForest:')
+    print('\033[34m# Feature importance for RandomForest:\033[0m')
     for idx, importance in enumerate(features):
       print(' {0:10s} - {1:.2f}'.format(Cols[idx], importance*100))
   except AttributeError:
@@ -264,10 +266,10 @@ def SK_RunML( traj, lib_dir, ml_alg, models='' ):
 
   ## load in RF models if it is not generated on the fly
   if not models:
-    print('## INFO: Loading trained SK ML models...')
-    with bz2.open(lib_dir+sk_dfg_model[ml_alg], 'rb') as fd:
+    print('\033[34m## INFO: Loading trained SK ML models...\033[0m')
+    with bz2.open(lib_dir+sk_dfg_models[ml_alg], 'rb') as fd:
       rfc_dfg = pickle.load(fd)
-    with bz2.open(lib_dir+sk_chx_model[ml_alg], 'rb') as fc:
+    with bz2.open(lib_dir+sk_chx_models[ml_alg], 'rb') as fc:
       rfc = pickle.load(fc)
   else:
     rfc_dfg, rfc = models
@@ -283,13 +285,13 @@ def SK_RunML( traj, lib_dir, ml_alg, models='' ):
   # append 'dfg_conf' and probability data to traj frame data
   traj['dfg_conf'] = traj_dfg_pred
   traj['dfg_prob'] = np.max(traj_dfg_prob, axis=1)
-  print('dfg: {:.6f} s'.format((time.perf_counter()-start)))
+  print(' \033[32mdfg:\033[0m {:.6f} s'.format((time.perf_counter()-start)))
 
   ##### classify Chelix/DFG conformation of traj frames #####
   start = time.perf_counter()
   traj_full_pred = rfc.predict(traj[full_train_cols])
   traj_full_prob = rfc.predict_proba(traj[full_train_cols])
-  print('full: {:.6f} s'.format((time.perf_counter()-start)))
+  print(' \033[32mfull:\033[0m {:.6f} s'.format((time.perf_counter()-start)))
 
   ## append 'Class' and probability to traj frame data 
   start = time.perf_counter()
@@ -301,7 +303,7 @@ def SK_RunML( traj, lib_dir, ml_alg, models='' ):
   traj['codo_prob'] = traj_full_prob[:,3]
   traj['wcd_prob']  = traj_full_prob[:,4]
   traj['training']  = training_df
-  print('add: {:.6f} s'.format((time.perf_counter()-start)))
+  print(' \033[32madd:\033[0m {:.6f} s'.format((time.perf_counter()-start)))
 
   return traj[Ref_Final_Cols]
 
@@ -315,10 +317,10 @@ def PrepareTestSet( args, Ref_Test_Cols ):
   try:
     test_df = test_df[Ref_Test_Cols]
   except IndexError:
-    print(' # ERROR: expected input column name and order:')
+    print('\033[31m# ERROR: expected input column name and order:\033[0m')
     print(Ref_Test_Cols)
     print(test_df.columns)
-    sys.exit('  Input dataset columns not matching')
+    sys.exit('\033[31m# FATAL: Input dataset columns not matching\033[0m')
   
   return test_df
   

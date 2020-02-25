@@ -15,22 +15,17 @@ import numpy as np
 import pandas as pd
 import mdtraj as md
 
-from tqdm import tqdm
 from pathos import multiprocessing
 from argparse import ArgumentParser
 
 from x_kinfo_traj_functions import ReadTraj
-from x_kinfo_traj_functions import TrajCoord
-from x_kinfo_traj_functions import ArrayCent
-from x_kinfo_traj_functions import CollectCoords
 from x_kinfo_traj_functions import ExtractCoords
 from x_kinfo_traj_functions import CompareMetrics
 from x_kinfo_traj_functions import CalculateMetrics
-from x_kinfo_traj_functions import CalculateHelixAxis
-from x_kinfo_traj_functions import CalculateDFGVectors
-from x_kinfo_traj_functions import VecMag, VecGen, Distance, VectorAngle
 
 from x_kinfo_SK_classify import KinfoClassify
+
+from x_kinfo_variables import KinfoVariables
 
 #print(np.__version__)       # stable: 1.16.2
 #print(pd.__version__)       # stable: 0.24.2
@@ -38,14 +33,37 @@ from x_kinfo_SK_classify import KinfoClassify
 #print(sklearn.__version__)  # stable: 0.20.3
 np.seterr(invalid='ignore')
 
-lib_dir = '/Users/xxx/Kinformation_MD/z_database/'
-print('##### need to change the hard-coded library/repository directory #####')
-print('current lib_dir: '+lib_dir+'\n')
+################################################
+msg ='''
+  > {0}
+      -templ <tmpl_file>  [ Template PDB structure (exact match to Topology Atom List 
+                            and aligned to Ref structure 1ATP) ]
+      -traj  <traj_file>  [ Trajectory file, or an ordered list of traj filenames 
+                            (format: dcd, nc, crd, xtc) ]
+      -out   <prefix>     [ Output prefix ]
+      -b3k   <int>        [ (beta-3 Lys) Residue Number in Template Structure ]
+      -dfg   <int>        [ (DFG Asp) Residue Number in Template Structure ]
+      -glu   <int>        [ (C-helix Glu) Residue Number in Template Structure ]\n\n\tOptional:\n
+      -lib   <path>       [ Kinformation_MD Repository database path (if not local) ]
+      -pkl   <pkl_file>   [ Use pre-generated Pickled traj data, in pkl.bz2 format (def: False) ]
+      -superp <str>       [ VMD-like selection string to perform superposition (default: False) ]
+      -use_sk <model>     [ Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf) ]
+      -use_r_rf           [ Use R::randomForest instead of SKLearn RFClassifier (def: None) ]
+'''
+if len(sys.argv) == 1: sys.exit(msg)
+
+###############################################
 
 sk_ml = ['rf','svm','nn','dt','kn','gb', 'gp']
 
 ##########################################################################
 def main():
+
+  Vars = KinfoVariables()
+  lib_dir = Vars['lib_dir']
+  print('\033[34m## need to change the hard-coded library/repository directory ##\033[0m')
+  print('\033[34m current lib_dir:\033[0m '+lib_dir+'\n')
+
   args = UserInput()
 
   if args.use_sk not in sk_ml:   # default SK model: RandomForest
@@ -66,27 +84,26 @@ def main():
     lib_dir = args.lib_dir
 
   ## reference structure must start at resid 1. Modified ref is hardcoded here
-  if not os.path.isfile(lib_dir+'1ATP.mdtraj.pdb'):
-    sys.exit('\n    ERROR: Reference structure "1ATP.mdtraj.pdb" not found\n'+
-              lib_dir+'1ATP.mdtraj.pdb')
+  if not os.path.isfile('{0}/{1}'.format(lib_dir,Vars['ref_pdb'])):
+    sys.exit('\n    \033[31mFATAL: Reference structure \033[0m"{0}"\033[31m not found in database\033[0m'.format(Vars['ref_pdb']))
   else:
-    ref_file = lib_dir+'1ATP.mdtraj.pdb'
-    ref_pkl  = lib_dir+'1ATP.mdtraj.pkl.bz2'
-    ref_dfg  = 171
-    ref_b3k  = 59
-    ref_c_glu= 78
+    ref_file = lib_dir+'/'+Vars['ref_pdb']
+    ref_pkl  = lib_dir+'/'+Vars['ref_pkl']
+    ref_dfg  = Vars['ref_dfg']
+    ref_b3k  = Vars['ref_b3k']
+    ref_c_glu= Vars['ref_c_glu']
 
 ######################
 
   ## get reference PDB structure 1ATP.pdb coordinates dataframe
-  print('# Reading in reference file: '+ref_file)
+  print('\033[34m# Reading in reference file:\033[0m '+ref_file)
   if not ref_pkl or not os.path.isfile(ref_pkl):
     ref    = md.load_pdb(ref_file)
     ref_cd = ExtractCoords(dfg=ref_dfg, b3k=ref_b3k, c_glu=ref_c_glu, pkl=ref_pkl)
     ref_df = CalculateMetrics( ref_cd(ref) )
   ## skip calculation if data is already stored in pickle
   else:
-    print('  ## INFO: Read structural residue coords from: {0}\n'.format(ref_pkl))
+    print('  \033[34m## INFO: Read structural residue coords from:\033[0m {0}\n'.format(ref_pkl))
     with bz2.open(ref_pkl, 'rb') as fi:
       ref = pickle.load(fi)
     ref_df = CalculateMetrics( ref )
@@ -94,7 +111,7 @@ def main():
 ######################
   ## load trajectory file(s) with MDtraj, can be multiple traj files at once
   traj = []
-  print('# Reading in trajectory file(s)...')
+  print('\033[34m# Reading in trajectory file(s)...\033[0m')
   start = time.perf_counter()
   if not args.pkl or not os.path.isfile(args.pkl):
     start2= time.perf_counter()
@@ -104,29 +121,29 @@ def main():
     else:
       traj_list = filter(None, (l.rstrip() for l in open(args.traj_file, 'r')
                                 if l is not re.search(r'^#', l)))
-      mpi  = multiprocessing.Pool(processes = multiprocessing.cpu_count())
+      mpi  = multiprocessing.Pool()
       traj = md.join( mpi.imap(TrjIn, traj_list,2) )
       mpi.close()
       mpi.join()
     end2 = time.perf_counter()
-    print('  ## Time to load trajectory: {0:.1f} ms for {1} frames\n'.format(
+    print('  ## Time to load trajectory: \033[31m{0:.1f}\033[0m ms for \033[34m{1}\033[0m frames\n'.format(
               (end2-start2)*1000, len(traj)) )
 
   ## superpose all frames to template structure pre-superposed to ref 1ATP.pdb
     if args.superp:
-      print('# Applying superposition to trajectory with: '+args.superp)
+      print('\033[34m# Applying superposition to trajectory with:\033[0m '+args.superp)
       tmpl = md.load_pdb(args.tmpl_file)
       traj = traj.superpose(tmpl, atom_indices=args.superp, parallel=True)
 
     ## get trajectory coordinates dataframe
-    print('# Extracting structural matrics from trajectory...')
+    print('\033[34m# Extracting structural matrics from trajectory...\033[0m')
     start  = time.perf_counter()
     trj_cd = ExtractCoords(dfg=args.dfg, b3k=args.b3k, c_glu=args.c_glu, pkl=args.pkl)
     trj_df = CalculateMetrics( trj_cd(traj) )
 
   ## skip calculation if data is already stored in pickle
   else:
-    print('  ## INFO: Read structural residue coords from: {0}\n'.format(args.pkl))
+    print('  \033[34m## INFO: Read structural residue coords from:\033[0m {0}\n'.format(args.pkl))
     with bz2.open(args.pkl, 'rb') as fi:
       trj_df = CalculateMetrics( pickle.load(fi) )
 
@@ -139,13 +156,13 @@ def main():
 ######################
 ######################
   ## calculate structural metrics from coordinates, then print out raw output
-  print('# Calculating structural matrics from coordinates...')
+  print('\033[34m# Calculating structural matrics from coordinates...\033[0m')
   start  = time.perf_counter()
   mat_df = CompareMetrics(trj_df, ref_df)
 
   mat_df.to_csv(args.outpref+'.csv', sep=',')
   end    = time.perf_counter()
-  print('## Total time to compare descriptors: {0:.1f} ms for {1} frames'.format(
+  print('## Total time to compare descriptors: \033[31m{0:.1f}\033[0m ms for \033[34m{1}\033[0m frames'.format(
         (end-start)*1000, len(mat_df)))
   print('\n#########################################\n')
 
@@ -155,7 +172,7 @@ def main():
   start = time.perf_counter()
   KinfoClassify(mat_df, lib_dir, args.outpref, args.use_r_rf, args.use_sk)
   end    = time.perf_counter()
-  print('\n## Total time to SK {0} Classification: {1:.3f} ms for {2} frames'.format(
+  print('\n## Total time to SK \033[31m{0}\033[0m Classification: \033[31m{1:.3f}\033[0m ms for \033[34m{2}\033[0m frames'.format(
         args.use_sk, (end-start)*1000, len(mat_df)))
 
   print('\n#########################################\n')
@@ -163,6 +180,7 @@ def main():
 
 
 ##########################################################################
+
 def UserInput():
   p = ArgumentParser(description='Command Line Arguments')
 
