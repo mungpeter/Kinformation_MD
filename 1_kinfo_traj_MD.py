@@ -48,8 +48,16 @@ msg ='''
       -pkl   <pkl_file>   [ Use pre-generated Pickled traj data, in pkl.bz2 format (def: False) ]
       -superp <str>       [ VMD-like selection string to perform superposition (default: False) ]
       -use_sk <model>     [ Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf) ]
-      -use_r_rf           [ Use R::randomForest instead of SKLearn RFClassifier (def: None) ]
-'''
+      -use_r_rf           [ Use R::randomForest instead of SKLearn RFClassifier (def: None) ]\n
+e.g.>  1_kinfo_traj_MD.py
+          -templ strada_cido.prot.1atp.pdb 
+          -traj strada_cidi.2.200ps.dcd 
+          -pkl cidi.pkl.bz2
+          -b3k 39 -dfg 152 -glu 57 -out test
+          -superp 'resid 100 to 200 and 250 to 300'
+          -use_sk svm
+          -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
+'''.format(sys.argv[0])
 if len(sys.argv) == 1: sys.exit(msg)
 
 ###############################################
