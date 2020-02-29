@@ -5,6 +5,8 @@
 ## 1_kinfo_traj_MD.py and other scripts. This model generation
 ## step is a one-time thing unless more the training set of the
 ## kinase conformations is changed 
+from platform import python_version
+python_version()
 
 import sys,os
 import bz2
@@ -74,11 +76,10 @@ def SK_GenerateMLModels():
   kinfo_rf_data      = Vars['kinfo_rf_data']
   kinfo_rf_data_norm = Vars['kinfo_rf_data_norm']
   kinfo_norm_param   = Vars['kinfo_norm_param']
-
-
+  
 ##########################################################################
   os.chdir(home_dir)
-  print('\033[34m# Directory:\033[0m]\n {0}'.format(os.getcwd()))
+  print('\033[34m# Directory:\033[0m\n {0}'.format(os.getcwd()))
 
 ############## Run this to generate SKL RandomForest Models ##############
 
@@ -91,6 +92,7 @@ def SK_GenerateMLModels():
 
 ##################################
   ## Training set, usually the top 325 lines of strutures with manually annotated conformations
+  ## load "PrepareTrainingSet()" found later in this script
   train_x  = PrepareTrainingSet( True, matrx_df, Ref_Train_Cols ); train_x[:5]
   test_x   = matrx_df[pd.isna(matrx_df.Group) & pd.isna(matrx_df.training)]
   test_x   = test_x.dropna(subset=Ref_Test_Cols)    # 3286 lines
@@ -98,26 +100,33 @@ def SK_GenerateMLModels():
   complete = pd.concat([train_x, test_x]); complete[:5]
 
   ## Save pre-normalized data for kinformation RF generation as backup
-  complete.to_csv(kinfo_rf_data, compression='gzip', sep=',')
-  complete = pd.read_csv('{0}/{1}'.format(lib_dir,kinfo_rf_data), sep=','); complete[:5]
+  complete.to_csv(lib_dir+kinfo_rf_data, compression='gzip', sep=',')
+  complete = pd.read_csv(lib_dir+kinfo_rf_data, sep=','); complete[:5]
 
-  with open('{0}/{1}'.format(lib_dir, kinfo_norm_param), 'rb') as fi:
-    norm_param = pickle.load(fi)
+  ## Run this for first time to get pickled Normalization parameters
+  norm_data = Normalization(complete[norm_cols], norm_param='',
+                            norm_file=lib_dir+kinfo_norm_param)
 
-  norm_data = Normalization(complete[norm_cols], norm_param=norm_param)
+  ## Read saved normalization factors for data normalization
+  norm_param = pd.read_csv(lib_dir+kinfo_norm_param, sep=',', comment='#')
+  norm_data  = Normalization(complete[norm_cols], norm_param=norm_param)
   complete[norm_cols] = norm_data
+  complete[:10]
 
   ## Save/load normalized data for kinformation RF generation
   complete.to_csv(kinfo_rf_data_norm, compression='gzip', sep=',')
-  complete = pd.read_csv('{0}/{1}'.format(lib_dir,kinfo_rf_data_norm), sep=','); complete[:5]
+  complete = pd.read_csv(lib_dir+kinfo_rf_data_norm, sep=','); complete[:5]
 
-  train_df = complete[ :len(train_x)]
-  test_df  = complete[len(train_x): ]
+  train_df = complete[ :len(train_x)] ; len(train_df)
+  test_df  = complete[len(train_x): ] ; len(test_df)
 
   ## RandomForest: 'rf'; SVM: 'svm'; NeuralNet: 'nn'; DecisionTree: 'dt'
   ## GradientBoost: 'gb'; GaussianProcess: 'gp'; K-NearestNeighbors: 'kn'
-  ml_alg    = 'rf'
-  ml_models = SK_TrainML( train_df, lib_dir, ml_alg, save_model=False )
+  ## Although, it is better to do it one by one and save the one with best OOB
+  ml_all = ['rf','svm','nn','dt','gb','gp','kn']
+  ml_alg = ml_all[6]
+
+  ml_models = SK_TrainML( train_df, lib_dir, ml_alg, save_model=True )
   result_df = SK_RunML( complete, lib_dir, ml_alg, models=ml_models )
 
   result_df[:10]
@@ -133,26 +142,26 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   random.seed(0)    # set random number
 
   if ml_alg == 'rf':
-    rfc_dfg = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0, n_jobs=-1  )
-    rfc = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0,  n_jobs=-1 )
+    rfc_dfg  = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0, n_jobs=-1  )
+    rfc_full = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0,  n_jobs=-1 )
   if ml_alg == 'svm':
-    rfc_dfg = SVC( kernel='rbf', decision_function_shape='ovo', probability=True, random_state=0 )
-    rfc = SVC( kernel='linear', decision_function_shape='ovo', probability=True, random_state=0 )
+    rfc_dfg  = SVC( kernel='rbf', decision_function_shape='ovo', probability=True, random_state=0 )
+    rfc_full = SVC( kernel='linear', decision_function_shape='ovo', probability=True, random_state=0 )
   if ml_alg == 'nn':
-    rfc_dfg = MLPClassifier( activation='relu', solver='adam', max_iter=500, random_state=0 )
-    rfc = MLPClassifier( activation='relu', solver='adam', max_iter=500, random_state=0 )
+    rfc_dfg  = MLPClassifier( activation='relu', solver='adam', max_iter=500, random_state=0 )
+    rfc_full = MLPClassifier( activation='relu', solver='adam', max_iter=500, random_state=0 )
   if ml_alg == 'dt':
-    rfc_dfg = DecisionTreeClassifier( random_state=0 )
-    rfc = DecisionTreeClassifier( random_state=0 )
+    rfc_dfg  = DecisionTreeClassifier( random_state=0 )
+    rfc_full = DecisionTreeClassifier( random_state=0 )
   if ml_alg == 'gb':
-    rfc_dfg = GradientBoostingClassifier( n_estimators=100, random_state=0 )
-    rfc = GradientBoostingClassifier( n_estimators=100, random_state=0 )
+    rfc_dfg  = GradientBoostingClassifier( n_estimators=100, random_state=0 )
+    rfc_full = GradientBoostingClassifier( n_estimators=100, random_state=0 )
   if ml_alg == 'gp':
-    rfc_dfg = GaussianProcessClassifier(optimizer='fmin_l_bfgs_b',n_restarts_optimizer=3,random_state=0,n_jobs=-1)
-    rfc = GaussianProcessClassifier(optimizer='fmin_l_bfgs_b',n_restarts_optimizer=3,random_state=0,n_jobs=-1)
+    rfc_dfg  = GaussianProcessClassifier(optimizer='fmin_l_bfgs_b',n_restarts_optimizer=3,random_state=0,n_jobs=-1)
+    rfc_full = GaussianProcessClassifier(optimizer='fmin_l_bfgs_b',n_restarts_optimizer=3,random_state=0,n_jobs=-1)
   if ml_alg == 'kn':
-    rfc_dfg = KNeighborsClassifier( n_neighbors=5, algorithm='auto' )
-    rfc = KNeighborsClassifier( n_neighbors=15, algorithm='auto' )
+    rfc_dfg  = KNeighborsClassifier( n_neighbors=5, algorithm='auto' )
+    rfc_full = KNeighborsClassifier( n_neighbors=15, algorithm='auto' )
 
 
   ## select the attribute columns to be used, and the label column to fit to
@@ -175,17 +184,17 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   chx_test_label  = kinfo_state(df_test.Group.to_numpy())
 
   #### train DFG/Chelix model on data including 'dfg_conf' to match 'Group' 5 states
-  rfc.fit(chx_train_attri, chx_train_label)
-  chx_test_pred = rfc.predict(chx_test_attri)
-  EvaluatePerformance(rfc, chx_test_label, chx_test_pred, full_train_cols)
+  rfc_full.fit(chx_train_attri, chx_train_label)
+  chx_test_pred = rfc_full.predict(chx_test_attri)
+  EvaluatePerformance(rfc_full, chx_test_label, chx_test_pred, full_train_cols)
 
   ## save the models into pickle
   if save_model:
     with bz2.open(sk_dfg_models[ml_alg], 'wb') as fd:
-      pickle.dump(rfc_dfg, fd, protocol=pickle.HIGHEST_PROTOCOL)
+      pickle.dump(rfc_dfg,  fd, protocol=pickle.HIGHEST_PROTOCOL)
     with bz2.open(sk_chx_models[ml_alg], 'wb') as fc:
-      pickle.dump(rfc,     fc, protocol=pickle.HIGHEST_PROTOCOL)
-  return [rfc_dfg, rfc]
+      pickle.dump(rfc_full, fc, protocol=pickle.HIGHEST_PROTOCOL)
+  return [rfc_dfg, rfc_full]
 
 
 ##########################################################################
@@ -198,7 +207,7 @@ def PrepareTrainingSet( r_impute, matrx_df, Ref_Train_Cols ):
 
   ## impute data by their subset ('Group')
   print('\033[34m## Imputing Training Set...\033[0m')
-  ## skip if no NA is found in dataset
+  ## skip imputing if no NaN value is found in dataset
   if not df.isnull().values.any():
     print(' INFO: no missing data for imputing.')
     clean_df = df

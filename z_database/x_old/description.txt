@@ -1,0 +1,2 @@
+# generated in 2019.05 with scikit-learn 0.20.3
+# not compatible with scikit-learn 0.22.1

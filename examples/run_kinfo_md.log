@@ -1,0 +1,55 @@
+[34m## need to change the hard-coded library/repository directory ##[0m
+[34m current lib_dir:[0m ./z_database/
+
+[34m# Reading in reference file:[0m /home/pmung/Dropbox/9_scripts/3_program/structures/4_Kinformation_MD/z_database//1ATP.mdtraj.pdb
+  [34m## INFO: Read structural residue coords from:[0m /home/pmung/Dropbox/9_scripts/3_program/structures/4_Kinformation_MD/z_database//1ATP.mdtraj.pkl.bz2
+
+# Calculate C-Glu vector (cg_vec)...
+ 5.7 ms for 1 frames
+
+# Calculate DFG vectors (p1, p2, v3)...
+# Calculate N-domain/C-helix angle (ang_NHs)...
+# Calculate C-domain/C-helix angle (ang_CHs)...
+# Calculate N-/C-domain distance (dist_NC)...
+# Calculate N-domain/C-helix distance (dist_NH)...
+# Calculate C-domain/C-helix distance (dist_CH)...
+ 11.2 ms for 1 frames
+
+[34m# Reading in trajectory file(s)...[0m
+  [34m## INFO: Read structural residue coords from:[0m traj_cido.pkl.bz2
+
+# Calculate C-Glu vector (cg_vec)...
+ 3.9 ms for 2700 frames
+
+# Calculate DFG vectors (p1, p2, v3)...
+# Calculate N-domain/C-helix angle (ang_NHs)...
+# Calculate C-domain/C-helix angle (ang_CHs)...
+# Calculate N-/C-domain distance (dist_NC)...
+# Calculate N-domain/C-helix distance (dist_NH)...
+# Calculate C-domain/C-helix distance (dist_CH)...
+ 96.0 ms for 2700 frames
+
+## Total time to get traj descriptors: 156.5 ms for 2700 frames
+
+#########################################
+
+[34m# Calculating structural matrics from coordinates...[0m
+## Total time to compare descriptors: [31m50.4[0m ms for [34m2700[0m frames
+
+#########################################
+
+[34m## Loading trained SK ML models... [0mnn
+ [34mSK_RF Classify DFG:[0m   0.009804 s
+ [34mSK_RF Classify Kinfo:[0m 0.008411 s
+ [34mAppend Kinfo data:[0m    0.016783 s
+
+[34mConformation   Counts[0m
+[35m     wcd	[31m1894[0m
+[35m     codo	[31m804[0m
+[35m     cido	[31m2[0m
+ [34mWrite to:[0m test.200228.SK_nn_kinfo_classify.csv
+
+## Total time to SK [31mnn[0m Classification: [31m176.956[0m ms for [34m2700[0m frames
+
+#########################################
+

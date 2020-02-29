@@ -9,24 +9,19 @@ from rpy2.robjects import r, pandas2ri
 pandas2ri.activate()
 R = ro.r
 
-from x_kinfo_variables import KinfoVariables
-
-Vars = KinfoVariables()
-lib_dir     = Vars['lib_dir']
-R_dfg_model = Vars['R_dfg_model']
-R_chx_model = Vars['R_chx_model']
-
 ##########################################################################
 ## Run the R-implementation of Random Forest classification.
 ## Pre-trained models in .rda format can be loaded in
 def R_RunRandomForest( traj_df, lib_dir, models='' ):
 
   if not models:
-    dfg_exist = os.path.isfile(lib_dir+R_dfg_model)
-    chx_exist = os.path.isfile(lib_dir+R_chx_model)
-    if not dfg_exist:
+    sys.exit('\033[31m  ERROR: No R randomForest model supplied\033[0m')
+  else:
+    R_dfg_model, R_chx_model = models
+
+    if not os.path.isfile(lib_dir+R_dfg_model):
       sys.exit('\033[31m  ERROR: R randomForest model not found:\033[0m '+R_dfg_model)
-    if not chx_exist:
+    if not os.path.isfile(lib_dir+R_chx_model):
       sys.exit('\033[31m  ERROR: R randomForest model not found:\033[0m '+R_chx_model)
 
     Rfunc = R( """
@@ -94,6 +89,8 @@ function( test, rf_model.dfg, rf_model ) {
   return R_rf_df
 
 
+########################################################################
+########## Only used for first time to generate R RF model #############
 ########################################################################
 ## R-randomForest rfImpute function, takes categorized "responses" to
 ## subset the data and impute each subset with randomForest, hence all

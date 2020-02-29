@@ -472,29 +472,27 @@ def ArrayCent( count ):
     center = (count-1)/2
   return int(center)
 
-##########################################################################
 
 ########################################################################
 ## Normalize ang_ and dist_ data with vectorization, same result as R's
 ## clusterSim data.Normalization(input, type='n5', normalization='column')
-def Normalization( data, norm_param='' ):
+## If no normalized_factor is supplied, this will assume to calculate the
+## normalization factor and write it to a csv file, place it in z_database
+def Normalization( data, norm_file='', norm_param='' ):
 
-  if not norm_param:
-    cb_vars = data.to_numpy() - data.to_numpy().mean(axis=0)
+  if not len(norm_param):
+    cb_mean = data.to_numpy().mean(axis=0)
+    cb_vars = data.to_numpy() - cb_mean
     cb_max  = np.max(np.abs(cb_vars), axis=0) 
+
+    ## write normalization factor to z_database
+    df = pd.DataFrame( [cb_mean,cb_max] ).T
+    df.columns = ['mean','max']
+    df.to_csv(norm_file, index=None, sep=',')
+
   else:
-    cb_vars = data.to_numpy() - norm_param.mean
-    cb_max  = norm_param.max
-
-## A one-time generation of mean/max value from input data for future use
-#  class Normal_Param(object):
-#    def __init__(self, mean='', max=''):
-#      self.mean = mean
-#      self.max  = max
-
-#  norm_parm = Normal_Param(mean=cb_mean, max=cb_max)
-#  with open('kinfo_data_normalize_param.pkl', 'wb') as fi:
-#    pickle.dump(norm_parm, fi, protocol=pickle.HIGHEST_PROTOCOL)
+    cb_vars = data.to_numpy() - norm_param['mean'].to_numpy()
+    cb_max  = norm_param['max'].to_numpy()
 
   return cb_vars/cb_max  # (var-mean)/max(abs(var-mean))
 

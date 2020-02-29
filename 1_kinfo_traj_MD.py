@@ -18,14 +18,15 @@ import mdtraj as md
 from pathos import multiprocessing
 from argparse import ArgumentParser
 
+from x_kinfo_variables import KinfoVariables
+from x_kinfo_SK_classify import KinfoClassify
+
 from x_kinfo_traj_functions import ReadTraj
+from x_kinfo_traj_functions import TrajCoord
+from x_kinfo_traj_functions import CollectCoords
 from x_kinfo_traj_functions import ExtractCoords
 from x_kinfo_traj_functions import CompareMetrics
 from x_kinfo_traj_functions import CalculateMetrics
-
-from x_kinfo_SK_classify import KinfoClassify
-
-from x_kinfo_variables import KinfoVariables
 
 #print(np.__version__)       # stable: 1.16.2
 #print(pd.__version__)       # stable: 0.24.2
@@ -38,17 +39,18 @@ msg ='''
   > {0}
       -templ <tmpl_file>  [ Template PDB structure (exact match to Topology Atom List 
                             and aligned to Ref structure 1ATP) ]
-      -traj  <traj_file>  [ Trajectory file, or an ordered list of traj filenames 
-                            (format: dcd, nc, crd, xtc) ]
       -out   <prefix>     [ Output prefix ]
       -b3k   <int>        [ (beta-3 Lys) Residue Number in Template Structure ]
       -dfg   <int>        [ (DFG Asp) Residue Number in Template Structure ]
-      -glu   <int>        [ (C-helix Glu) Residue Number in Template Structure ]\n\n\tOptional:\n
+      -glu   <int>        [ (C-helix Glu) Residue Number in Template Structure ]\n
+\tEither:
+      -traj  <traj_file>  [ Trajectory file, or an ordered list of traj filenames 
+                            (format: dcd, nc, crd, xtc) (def: False)]
+      -pkl   <pkl_file>   [ Use pre-generated Pickled traj data, in pkl.bz2 format (def: False) ]\n
+\tOptional:
       -lib   <path>       [ Kinformation_MD Repository database path (if not local) ]
-      -pkl   <pkl_file>   [ Use pre-generated Pickled traj data, in pkl.bz2 format (def: False) ]
       -superp <str>       [ VMD-like selection string to perform superposition (default: False) ]
-      -use_sk <model>     [ Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf) ]
-      -use_r_rf           [ Use R::randomForest instead of SKLearn RFClassifier (def: None) ]\n
+      -use_sk <model>     [ Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf) ]\n
 e.g.>  1_kinfo_traj_MD.py
           -templ strada_cido.prot.1atp.pdb 
           -traj strada_cidi.2.200ps.dcd 
@@ -58,6 +60,8 @@ e.g.>  1_kinfo_traj_MD.py
           -use_sk svm
           -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
 '''.format(sys.argv[0])
+#      -use_r_rf           [ Use R::randomForest instead of SKLearn RFClassifier (def: None) ]\n
+
 if len(sys.argv) == 1: sys.exit(msg)
 
 ###############################################
@@ -178,7 +182,7 @@ def main():
 #####################
   ## use Kinformation Random Forest Classifier to assign conformation/confidence
   start = time.perf_counter()
-  KinfoClassify(mat_df, lib_dir, args.outpref, args.use_r_rf, args.use_sk)
+  KinfoClassify(mat_df, lib_dir, args.outpref, args.use_sk)
   end    = time.perf_counter()
   print('\n## Total time to SK \033[31m{0}\033[0m Classification: \033[31m{1:.3f}\033[0m ms for \033[34m{2}\033[0m frames'.format(
         args.use_sk, (end-start)*1000, len(mat_df)))
@@ -194,8 +198,6 @@ def UserInput():
 
   p.add_argument('-templ', dest='tmpl_file', required=True,
                   help='Template PDB structure (exact match to Topology Atom List and aligned to Ref structure 1ATP)')
-  p.add_argument('-traj', dest='traj_file', required=True,
-                  help='Trajectory file, or an ordered list of traj filenames (format: dcd, nc, crd, xtc)')
   p.add_argument('-out', dest='outpref', required=True,
                   help='Output prefix')
   p.add_argument('-b3k', dest='b3k', required=True,
@@ -205,14 +207,16 @@ def UserInput():
   p.add_argument('-glu', dest='c_glu', required=True,
                   help='(C-helix Glu) Residue Number in Template Structure')
 
+  p.add_argument('-traj', dest='traj_file', required=False,
+                  help='Trajectory file, or an ordered list of traj filenames (format: dcd, nc, crd, xtc)')
   p.add_argument('-pkl', dest='pkl', required=False,
                   help='Use pre-pickled trajectory data generated from previous run, in pkl.bz2 format (def: False)')
 
   p.add_argument('-superp', dest='superp', required=False,
                   help='*Optional: VMD-like selection string to perform superposition (default: False)')
 
-  p.add_argument('-use_r_rf', action='store_true',
-                  help='Use R::randomForest instead of SKLearn RFClassifier (def: None)')
+#  p.add_argument('-use_r_rf', action='store_true',
+#                  help='Use R::randomForest instead of SKLearn RFClassifier (def: None)')
   p.add_argument('-use_sk', dest='use_sk', required=False,
                   help='Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf)')
 
