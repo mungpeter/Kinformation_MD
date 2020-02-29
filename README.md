@@ -5,17 +5,17 @@ Classification of Protein Kinase Conformations in MD trajectory to yield _C-heli
 
 **Generate SciKit Learn Machine-Learning Classification Models for Kinformation_MD**
 
-This script generates various classifers using one of the following methods: _RandomForest (rf)_, _Support-Vector Machine (svm)_, _Neural Network (nn)_, _K-nearest Neighbors (kn)_, _Decision Tree (dt)_, _Gaussian Process (gp)_, and _Gradient Boosting (gb)_, via Jupyter/iPython interface.
+This script generates various classifers using one of the following methods: _**RandomForest (rf)**_, _**Support-Vector Machine** (svm)_, _**Neural Network** (nn)_, _**K-nearest Neighbors** (kn)_, _**Decision Tree** (dt)_, _**Gaussian Process** (gp)_, and _**Gradient Boosting** (gb)_, via Jupyter/iPython interface.
 
 - For the initial data of 3,611 processed kinase structures (dataset: 17.10.09), 325 structures have been manually determined for their DFG and overall conformational states and used as the training set.
 - For the training set, missing data is imputed and all data is normalized ( (var-mean)/max(abs(var-mean)) )
 - Training set is splited at 80/20 (280 and 65 of 325 structures) for training and validation, respectively.
 
-All of these classifiers are able to distinguish the 5 different kinase conformations with error < 6%, with _nn, kn, gb_ classifiers doing the best (if not overfitted due to small validation size: 65 samples), followed by _rf, dt_.
+All of these classifiers are able to distinguish the 5 different kinase conformations with error < 6%, with **_nn, kn, gb_** classifiers doing the best (if not overfitted due to small validation size: 65 samples), followed by _rf, dt_.
 
-_C-helix/DFG out-of bag error_:
+C-helix/DFG out-of bag error:
 
-_nn, kn, gb_:   1.538 %
+_**nn, kn, gb**_:   1.538 %
 
 _rf, dt_:       3.077 %
 
