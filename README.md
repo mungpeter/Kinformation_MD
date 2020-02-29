@@ -79,7 +79,8 @@ e.g.>  1_kinfo_traj_MD.py
     pandas      # stable: 0.24.2
     mdtraj      # stable: 1.9.3
     sklearn     # stable: 0.20.3
-    rpy2        # stable: 2.9.4
+    rpy2        # stable: 2.9.4	    # has bug, issue with having no tzlocal
+    tzlocal     # stable: 2.0.0
     tqdm        # stable: 4.31.1
     pathos      # stable: 0.2.3
     argparse    # stable: 1.1 
