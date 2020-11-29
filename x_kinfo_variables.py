@@ -32,7 +32,7 @@ def SKLearnDFGModelFiles():
     'rf': 'SK-0221_rf_model_dfg.pkl.bz2', 'svm': 'SK-0221_svm_rbf_model_dfg.pkl.bz2', 
     'nn': 'SK-0221_nn_model_dfg.pkl.bz2', 'kn':  'SK-0221_kn_model_dfg.pkl.bz2', 
     'gb': 'SK-0221_gb_model_dfg.pkl.bz2', 'gp':  'SK-0221_gp_model_dfg.pkl.bz2', 
-    'dt': 'SK-0221_dt_model_dfg.pkl.bz2'  }
+    'dt': 'SK-0221_dt_model_dfg.pkl.bz2', 'et':  'SK-0221_et_model_dfg.pkl.bz2'  }
   return sk_dfg_model
 
 #########################
@@ -43,7 +43,7 @@ def SKLearnKinfoModelFiles():
     'rf': 'SK-0221_rf_model_full.pkl.bz2', 'svm': 'SK-0221_svm_lin_model_full.pkl.bz2', 
     'nn': 'SK-0221_nn_model_full.pkl.bz2', 'kn':  'SK-0221_kn_model_full.pkl.bz2', 
     'gb': 'SK-0221_gb_model_full.pkl.bz2', 'gp':  'SK-0221_gp_model_full.pkl.bz2', 
-    'dt': 'SK-0221_dt_model_full.pkl.bz2'  }
+    'dt': 'SK-0221_dt_model_full.pkl.bz2', 'et':  'SK-0221_et_model_full.pkl.bz2'  }
   return sk_chx_model
 
 #################################################################################

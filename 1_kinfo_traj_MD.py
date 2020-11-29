@@ -28,10 +28,10 @@ from x_kinfo_traj_functions import ExtractCoords
 from x_kinfo_traj_functions import CompareMetrics
 from x_kinfo_traj_functions import CalculateMetrics
 
-#print(np.__version__)       # stable: 1.16.2
-#print(pd.__version__)       # stable: 0.24.2
-#print(md.__version__)       # stable: 1.9.3
-#print(sklearn.__version__)  # stable: 0.20.3
+print(np.__version__)       # stable: 1.16.2
+print(pd.__version__)       # stable: 0.24.2
+print(md.__version__)       # stable: 1.9.3
+print(sklearn.__version__)  # stable: 0.20.3, 0.22.1
 np.seterr(invalid='ignore')
 
 ################################################
@@ -50,14 +50,14 @@ msg ='''
 \tOptional:
       -lib   <path>       [ Kinformation_MD Repository database path (if not local) ]
       -superp <str>       [ VMD-like selection string to perform superposition (default: False) ]
-      -use_sk <model>     [ Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf) ]\n
+      -use_sk <model>     [ Use SKLearn ML model: rf|et|svm|nn|kn|dt|gp|gb (def: et, recommend: et, nn) ]\n
 e.g.>  1_kinfo_traj_MD.py
           -templ strada_cido.prot.1atp.pdb 
           -traj strada_cidi.2.200ps.dcd 
           -pkl cidi.pkl.bz2
           -b3k 39 -dfg 152 -glu 57 -out test
-          -superp 'resid 100 to 200 and 250 to 300'
-          -use_sk svm
+          -superp '(resid 122 to 138 or resid 162 to 183) and (name CA C N O)'
+          -use_sk et
           -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
 '''.format(sys.argv[0])
 #      -use_r_rf           [ Use R::randomForest instead of SKLearn RFClassifier (def: None) ]\n
@@ -66,7 +66,7 @@ if len(sys.argv) == 1: sys.exit(msg)
 
 ###############################################
 
-sk_ml = ['rf','svm','nn','dt','kn','gb', 'gp']
+sk_ml = ['rf','et','svm','nn','dt','kn','gb','gp']
 
 ##########################################################################
 def main():
@@ -79,7 +79,7 @@ def main():
   args = UserInput()
 
   if args.use_sk not in sk_ml:   # default SK model: RandomForest
-    args.use_sk = 'rf'
+    args.use_sk = 'et'
 
 ### These are hard-coded test cases with known key residue positions. 
 ### This was used for examining the code by skipping some steps
@@ -145,7 +145,8 @@ def main():
     if args.superp:
       print('\033[34m# Applying superposition to trajectory with:\033[0m '+args.superp)
       tmpl = md.load_pdb(args.tmpl_file)
-      traj = traj.superpose(tmpl, atom_indices=args.superp, parallel=True)
+      sele = tmpl.topology.select(args.superp)
+      traj = traj.superpose(tmpl, atom_indices=sele, parallel=True)
 
     ## get trajectory coordinates dataframe
     print('\033[34m# Extracting structural matrics from trajectory...\033[0m')
@@ -218,7 +219,7 @@ def UserInput():
 #  p.add_argument('-use_r_rf', action='store_true',
 #                  help='Use R::randomForest instead of SKLearn RFClassifier (def: None)')
   p.add_argument('-use_sk', dest='use_sk', required=False,
-                  help='Use SKLearn ML model: rf|svm|nn|kn|dt|gp|gb (def: rf)')
+                  help='Use SKLearn ML model: rf|et|svm|nn|kn|dt|gp|gb (def: et)')
 
   p.add_argument('-lib', dest='lib_dir', required=False, 
                   help='Kinformation_MD Repository database path (unless hard-coded)')
@@ -242,7 +243,7 @@ if __name__ == '__main__':
 #
 # e.g.> x.py -templ strada_cido.prot.1atp.pdb -traj strada_cidi.2.200ps.dcd 
 #            -b3k 39 -dfg 152 -glu 57 -out test
-#            -superp 'resid 20 to 50 and 100 to 200'
+#            -superp '(resid 122 to 138 or resid 162 to 183) and (name CA C N O)'
 #            -use_sk svm
 #            -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
 #

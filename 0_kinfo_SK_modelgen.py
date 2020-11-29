@@ -28,6 +28,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
 #from sklearn.ensemble import AdaBoostClassifier   # pretty bad result
+from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
@@ -122,9 +123,10 @@ def SK_GenerateMLModels():
 
   ## RandomForest: 'rf'; SVM: 'svm'; NeuralNet: 'nn'; DecisionTree: 'dt'
   ## GradientBoost: 'gb'; GaussianProcess: 'gp'; K-NearestNeighbors: 'kn'
+  ## ExtraTrees: 'et'
   ## Although, it is better to do it one by one and save the one with best OOB
-  ml_all = ['rf','svm','nn','dt','gb','gp','kn']
-  ml_alg = ml_all[6]
+  ml_all = ['rf','svm','nn','dt','gb','gp','kn','et']
+  ml_alg = ml_all[7]
 
   ml_models = SK_TrainML( train_df, lib_dir, ml_alg, save_model=True )
   result_df = SK_RunML( complete, lib_dir, ml_alg, models=ml_models )
@@ -143,7 +145,7 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
 
   if ml_alg == 'rf':
     rfc_dfg  = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0, n_jobs=-1  )
-    rfc_full = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0,  n_jobs=-1 )
+    rfc_full = RandomForestClassifier( n_estimators=1000, bootstrap=True, random_state=0, n_jobs=-1 )
   if ml_alg == 'svm':
     rfc_dfg  = SVC( kernel='rbf', decision_function_shape='ovo', probability=True, random_state=0 )
     rfc_full = SVC( kernel='linear', decision_function_shape='ovo', probability=True, random_state=0 )
@@ -162,6 +164,9 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   if ml_alg == 'kn':
     rfc_dfg  = KNeighborsClassifier( n_neighbors=5, algorithm='auto' )
     rfc_full = KNeighborsClassifier( n_neighbors=15, algorithm='auto' )
+  if ml_alg == 'et':
+    rfc_dfg  = ExtraTreesClassifier( n_estimators=1000, bootstrap=True, random_state=0, n_jobs=-1 )
+    rfc_full = ExtraTreesClassifier( n_estimators=1000, bootstrap=True, random_state=0, n_jobs=-1 )
 
 
   ## select the attribute columns to be used, and the label column to fit to
@@ -174,7 +179,7 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   #### train DFG model on data to match 'dfg_conf' 3 states
   rfc_dfg.fit(dfg_train_attri, dfg_train_label)
   dfg_test_pred = rfc_dfg.predict(dfg_test_attri)
-  EvaluatePerformance(rfc_dfg, dfg_test_label, dfg_test_pred, dfg_train_cols)
+  EvaluatePerformance(rfc_dfg, dfg_test_label, dfg_test_pred, dfg_train_cols, ml_alg)
 
 
   ## train on the DFG/Chelix, add 'dfg_conf' according to Group, factor 'Group'
@@ -186,7 +191,7 @@ def SK_TrainML( df, lib_dir, ml_alg, save_model=False ):
   #### train DFG/Chelix model on data including 'dfg_conf' to match 'Group' 5 states
   rfc_full.fit(chx_train_attri, chx_train_label)
   chx_test_pred = rfc_full.predict(chx_test_attri)
-  EvaluatePerformance(rfc_full, chx_test_label, chx_test_pred, full_train_cols)
+  EvaluatePerformance(rfc_full, chx_test_label, chx_test_pred, full_train_cols, ml_alg)
 
   ## save the models into pickle
   if save_model:
@@ -251,9 +256,9 @@ def SK_Impute( df, conf, coln, coli ):
 
 ###########################################################################
 ## Perform matrics calculation to evaluate model performance
-def EvaluatePerformance( model, test, predict, Cols ):
+def EvaluatePerformance( model, test, predict, Cols, ml_alg ):
 
-  print('\033[34m### Evaluate SKlearn ML Model Performance ###\033[0m')
+  print('\033[34m### Evaluate SKlearn ML Model Performance: \033[35m{0}\033[34m ###\033[0m'.format(ml_alg))
   print(' # Confusion Matrix:')
   print(confusion_matrix(test, predict))
   print('\n# Mean Squared Error:')
@@ -263,7 +268,7 @@ def EvaluatePerformance( model, test, predict, Cols ):
   print('{0:.3f} %  -  {1:.3f} %\n'.format(a_score*100, (1-a_score)*100))
   try:
     features = model.feature_importances_
-    print('\033[34m# Feature importance for RandomForest:\033[0m')
+    print('\033[34m# Feature importance for \033[35m{0}\033[0m'.format(ml_alg))
     for idx, importance in enumerate(features):
       print(' {0:10s} - {1:.2f}'.format(Cols[idx], importance*100))
   except AttributeError:
@@ -275,7 +280,7 @@ def SK_RunML( traj, lib_dir, ml_alg, models='' ):
 
   ## load in RF models if it is not generated on the fly
   if not models:
-    print('\033[34m## INFO: Loading trained SK ML models...\033[0m')
+    print('\033[34m## INFO: Loading trained SK ML model: \033[35m{0}\033[0m'.format(ml_alg))
     with bz2.open(lib_dir+sk_dfg_models[ml_alg], 'rb') as fd:
       rfc_dfg = pickle.load(fd)
     with bz2.open(lib_dir+sk_chx_models[ml_alg], 'rb') as fc:

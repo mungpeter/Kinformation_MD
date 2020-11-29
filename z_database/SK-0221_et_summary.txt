@@ -1,0 +1,59 @@
+### Evaluate SKlearn ML Model Performance: et ###
+ # Confusion Matrix:
+[[36  0  1]
+ [ 0 16  0]
+ [ 0  0 12]]
+
+# Mean Squared Error:
+              precision    recall  f1-score   support
+
+           0       1.00      0.97      0.99        37
+           1       1.00      1.00      1.00        16
+           2       0.92      1.00      0.96        12
+
+    accuracy                           0.98        65
+   macro avg       0.97      0.99      0.98        65
+weighted avg       0.99      0.98      0.98        65
+
+
+# Accuracy Score - Out-of-bag Error:
+98.462 %  -  1.538 %
+
+# Feature importance for et
+ p1p1x      - 31.19
+ p2p2x      - 33.10
+ r3r3x      - 28.61
+ dist_NH    - 3.18
+ dist_CH    - 3.92
+### Evaluate SKlearn ML Model Performance: et ###
+ # Confusion Matrix:
+[[23  0  1  0  0]
+ [ 0 10  0  0  0]
+ [ 0  0 13  0  0]
+ [ 0  0  0  6  0]
+ [ 0  0  0  0 12]]
+
+# Mean Squared Error:
+              precision    recall  f1-score   support
+
+           0       1.00      0.96      0.98        24
+           1       1.00      1.00      1.00        10
+           2       0.93      1.00      0.96        13
+           3       1.00      1.00      1.00         6
+           4       1.00      1.00      1.00        12
+
+    accuracy                           0.98        65
+   macro avg       0.99      0.99      0.99        65
+weighted avg       0.99      0.98      0.98        65
+
+
+# Accuracy Score - Out-of-bag Error:
+98.462 %  -  1.538 %
+
+# Feature importance for et
+ h_cgvc     - 9.87
+ ang_NHs    - 9.51
+ ang_CHs    - 7.08
+ dist_NH    - 12.08
+ dist_CH    - 13.35
+ dfg_conf   - 48.11
