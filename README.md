@@ -53,7 +53,7 @@ _gp_:           6.154 %
 e.g.>  1_kinfo_traj_MD.py
           -templ strada_cido.prot.1atp.pdb -traj strada_cidi.2.200ps.dcd -pkl cidi.pkl.bz2
           -b3k 39 -dfg 152 -glu 57 -out test
-          -superp '(resid 100 to 200 and resid 250 to 300) and (name CA N C O)'
+          -superp '(resid 100 to 200 or resid 250 to 300) and (name CA N C O)'
           -use_sk et
           -lib '/Users/xxx/scripts/Kinformation_MD/z_database'
 ```
