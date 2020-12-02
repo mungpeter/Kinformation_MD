@@ -307,7 +307,8 @@ def CalculateDFGVectors( inp ):
   r1, r2, r3, r4 = inp
   x = len(r1)
 
-  # need to convert the list of vectors into dict before into Dataframe
+  ## need to convert the *list* of vectors into dict before into Dataframe. 
+  ## Cannot be np.array(vectors) but list(vectors) for Pandas to take the input
   vec = {
   'r21': r1 - r2,  # (AspCG - AspCA)      D (r1)
   'r23': r3 - r2,  # (AspCA - PheCA)       \______ (r3)
@@ -325,6 +326,13 @@ def CalculateDFGVectors( inp ):
 
   ## To enable pandas vectorized calculation, transpose the Mx3 to 3xM format
   ## for calculation, which is later transposed back to Mx3 format when done
+  ## Use of np.array(list(ur)).T is important; Transpose behaves differently with
+  ## np.array(ur).T and ur.T
+  # np.array(list(ur1))     -> array of list of lists of xyz   = array( 1 x M x 3 )
+  # np.array(list(ur1)).T   -> array of list of xyz from lists = array( 1 x 3 x M )
+  # np.array(ur1)           -> array of list of array of xyz   = array( 1 x M x 3 )
+  # np.array(ur1).T         -> ** same as np.array(ur1)
+  # ur1 / ur1.T             -> pd.Series of xyz                = ( M x 3 )
   t1 = {'temp1': list(VecCross( np.array(list(ur21)).T, np.array(list(ur23)).T ).T) }
   t2 = {'temp2': list(VecCross( np.array(list(ur34)).T, np.array(list(ur32)).T ).T) }
   t_df.temp1 = pd.DataFrame(t1)
